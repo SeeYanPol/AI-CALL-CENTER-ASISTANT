@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CallSim - Active Call</title>
+  <link rel="stylesheet" href="../css/call.css">
+</head>
+<body>
+
+<div class="call-container">
+  <div class="left-panel">
+    <div class="call-header">
+      <h2>📞 On Call...</h2>
+      <p id="callerName">Maria Dizon</p>
+    </div>
+
+    <div class="call-screen">
+      <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="caller-avatar" alt="Caller">
+      <h3 id="timer">00:00</h3>
+      <p class="status">Connected</p>
+    </div>
+
+    <div class="call-controls">
+      <button id="muteBtn">🔇 Mute</button>
+      <button id="speakerBtn">🔊 Speaker</button>
+      <button id="endCallBtn" class="end">❌ End Call</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <h3>📝 TICKET FORM</h3>
+    <div class="ticket-form">
+      <label>FIRST NAME:</label>
+      <input type="text" id="firstName" placeholder="Enter first name">
+      <label>LAST NAME:</label>
+      <input type="text" id="lastName" placeholder="Enter last name">
+      <label>EMAIL ADDRESS:</label>
+      <input type="email" id="email" placeholder="Enter email address">
+      <label>CHIEF COMPLAINT:</label>
+      <textarea id="complaint" placeholder="TYPE YOUR TEXT"></textarea>
+      <button id="submitTicket">SUBMIT</button>
+      <div id="ticketResult" class="result-box"></div>
+    </div>
+  </div>
+</div>
+
+<div id="popupOverlay" class="overlay">
+  <div class="popup">
+    <h2>SUBMITTED</h2>
+    <p id="popupText"></p>
+    <button id="nextBtn">NEXT</button>
+  </div>
+</div>
+
+<script>
+const popupOverlay = document.getElementById("popupOverlay");
+const popupText = document.getElementById("popupText");
+const nextBtn = document.getElementById("nextBtn");
+const submitTicket = document.getElementById("submitTicket");
+const timerEl = document.getElementById("timer");
+
+let callSeconds = 0;
+let callTimer;
+
+function startCallTimer() {
+  callTimer = setInterval(() => {
+    callSeconds++;
+    const minutes = String(Math.floor(callSeconds/60)).padStart(2,'0');
+    const seconds = String(callSeconds%60).padStart(2,'0');
+    timerEl.textContent = `${minutes}:${seconds}`;
+  },1000);
+}
+
+// Start timer immediately
+startCallTimer();
+
+// POPUP handling
+submitTicket.addEventListener("click", () => {
+  const first = document.getElementById("firstName").value.trim();
+  const last = document.getElementById("lastName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const complaint = document.getElementById("complaint").value.trim();
+
+  if (!first || !last || !email || !complaint) {
+    alert("Please fill out all fields before submitting.");
+    return;
+  }
+
+  popupText.textContent =
+    "Name: " + first + " " + last +
+    "\nEmail: " + email +
+    "\n\nChief Complaint:\n" + complaint;
+
+  popupOverlay.style.display = "flex";
+});
+
+nextBtn.addEventListener("click", () => {
+  popupOverlay.style.display = "none";
+  window.location.href = "result.html";
+});
+
+// Mute/Speaker buttons (dummy toggle for visual feedback)
+const muteBtn = document.getElementById("muteBtn");
+const speakerBtn = document.getElementById("speakerBtn");
+muteBtn.addEventListener("click", () => {
+  muteBtn.textContent = muteBtn.textContent.includes('🔇') ? '🎤 Unmute' : '🔇 Mute';
+});
+speakerBtn.addEventListener("click", () => {
+  speakerBtn.textContent = speakerBtn.textContent.includes('🔊') ? '🔈 Off' : '🔊 Speaker';
+});
+</script>
+
+</body>
+</html>
