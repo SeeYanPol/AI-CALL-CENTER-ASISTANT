@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Main Menu — Game</title>
+<!--
+  Single-file Game-Style Main Menu
+  - Accessible, responsive, keyboard-friendly
+  - Settings persisted to localStorage
+  - Modals for About and Settings, Quit confirmation
+  - Replace placeholder actions with your game's navigation logic
+-->
+
+<style>
+  /* ----------------------
+     Base / Reset
+     ---------------------- */
+  :root{
+    --bg1: #060616;
+    --bg2: #12122a;
+    --accent: #4da3ff;
+    --glass: rgba(255,255,255,0.04);
+    --card: rgba(255,255,255,0.03);
+    --muted: #bfc7d6;
+    --focus: 3px solid rgba(77,163,255,0.18);
+    --radius: 14px;
+    --container-width: 420px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color: #e6eef9;
+    background: radial-gradient(1200px 800px at 10% 10%, rgba(77,163,255,0.06), transparent),
+                linear-gradient(180deg, var(--bg1), var(--bg2));
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:28px;
+  }
+
+  /* Subtle animated stars in background */
+  .bg-stars {
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    background-image:
+      radial-gradient(1px 1px at 10% 30%, rgba(255,255,255,0.06), transparent),
+      radial-gradient(1px 1px at 80% 60%, rgba(255,255,255,0.04), transparent),
+      radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.03), transparent);
+    opacity:0.7;
+    animation: tilt 18s linear infinite;
+    mix-blend-mode:screen;
+  }
+  @keyframes tilt { from {transform:translateY(0)} to {transform:translateY(-12px)} }
+
+  /* ----------------------
+     Menu Card
+     ---------------------- */
+  .menu-card{
+    width:min(92vw, var(--container-width));
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: var(--radius);
+    box-shadow: 0 12px 30px rgba(3,6,20,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    padding:28px;
+    position:relative;
+    z-index:1;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+
+  .brand {
+    display:flex;
+    gap:14px;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .logo {
+    width:64px;
+    height:64px;
+    border-radius:12px;
+    background: linear-gradient(135deg, rgba(77,163,255,0.18), rgba(80,200,150,0.08));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:700;
+    color:var(--accent);
+    font-size:22px;
+    letter-spacing:0.8px;
+    box-shadow: 0 6px 18px rgba(77,163,255,0.06);
+  }
+  .title {
+    display:flex;
+    flex-direction:column;
+  }
+  .title h1{margin:0;font-size:20px;letter-spacing:1px}
+  .subtitle{font-size:11px;color:var(--muted);margin-top:4px}
+
+  /* ----------------------
+     Buttons list
+     ---------------------- */
+  .menu-button:hover {
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 18px 30px rgba(77,163,255,0.12);
+  background: linear-gradient(180deg, rgba(77,163,255,0.14), rgba(77,163,255,0.06));
+}
+
+  
+     .menu {
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:8px;
+  }
+
+  .menu-button {
+    appearance:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    width:100%;
+    padding:14px 18px;
+    font-size:18px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    background: linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.01));
+    color:var(--muted);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    box-shadow: 0 6px 14px rgba(2,6,20,0.45);
+    text-transform:uppercase;
+    letter-spacing:1.6px;
+    font-weight:600;
+  }
+
+  .menu-button[data-selected="true"]{
+    color: white;
+    transform:translateY(-3px);
+    box-shadow: 0 18px 30px rgba(77,163,255,0.12);
+    background: linear-gradient(180deg, rgba(77,163,255,0.14), rgba(77,163,255,0.06));
+  }
+
+  .menu-button:focus {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  .menu-meta {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:14px;
+    font-size:13px;
+    color:var(--muted);
+  }
+
+  /* small footer */
+  .credits { font-size:12px; color:var(--muted); margin-top:14px; text-align:center; }
+
+  /* ----------------------
+     Modal (About / Settings / Quit)
+     ---------------------- */
+  .overlay {
+    position:fixed;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    z-index:20;
+    -webkit-backdrop-filter: blur(6px) saturate(1.05);
+    backdrop-filter: blur(6px) saturate(1.05);
+  }
+  .overlay.active { display:flex; }
+
+  .modal {
+    width:min(720px, 95vw);
+    max-width:720px;
+    background: linear-gradient(180deg, rgba(4,7,20,0.9), rgba(8,12,28,0.95));
+    border-radius:12px;
+    padding:20px;
+    color:#dfe9ff;
+    box-shadow: 0 20px 60px rgba(2,6,20,0.7);
+    border:1px solid rgba(255,255,255,0.03);
+  }
+
+  .modal h2 { margin:6px 0 10px 0; font-size:18px; }
+  .modal p { color:var(--muted); line-height:1.5; font-size:14px; }
+
+  .modal-row { display:flex; gap:12px; align-items:center; margin-top:12px; }
+  .switch {
+    display:inline-flex; align-items:center; gap:10px; margin-left:auto;
+  }
+  .switch input[type="checkbox"]{display:none}
+  .switch .track{
+    width:46px; height:26px; border-radius:999px; background:rgba(255,255,255,0.06);
+    position:relative; cursor:pointer;
+  }
+  .switch .thumb{
+    position:absolute; left:4px; top:3px; width:20px; height:20px; border-radius:50%;
+    background:white; transition:all .18s;
+    box-shadow:0 6px 14px rgba(2,6,20,0.4);
+  }
+  .switch input:checked + .track { background: linear-gradient(90deg,var(--accent), #63e0a7); }
+  .switch input:checked + .track .thumb { transform: translateX(20px); background:white; }
+
+  .modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  .btn { padding:10px 14px; border-radius:8px; border:none; font-weight:600; cursor:pointer; }
+  .btn.ghost { background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03); }
+  .btn.primary { background:linear-gradient(90deg,var(--accent), #63e0a7); color:#052033; }
+
+  /* Quit confirm */
+  .confirm-choices { display:flex; gap:10px; justify-content:center; margin-top:16px; }
+
+  /* ----------------------
+     Responsive adjustments
+     ---------------------- */
+  @media (max-width:520px){
+    .logo{width:52px;height:52px}
+    .menu-button{font-size:16px;padding:12px}
+    .menu-card{padding:18px}
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-stars" aria-hidden="true"></div>
+
+<!-- MENU CARD -->
+<main class="menu-card" role="main" aria-labelledby="main-title">
+  <header class="brand">
+    <div class="logo" aria-hidden="true">CS</div>
+    <div class="title">
+      <h1 id="main-title">CALL SIMULATOR</h1>
+      <div class="subtitle">Main Menu — Press ↑/↓ to navigate • Enter to select</div>
+    </div>
+  </header>
+
+  <!-- Menu buttons -->
+  <nav class="menu" aria-label="Main menu" id="main-menu" tabindex="0">
+    <!-- data-key used for keyboard shortcuts or for tests -->
+    <button class="menu-button" data-key="start" id="btn-start">START</button>
+    <button class="menu-button" data-key="about" id="btn-about">ABOUT US</button>
+    <button class="menu-button" data-key="settings" id="btn-settings">SETTINGS</button>
+    <button class="menu-button" data-key="quit" id="btn-quit">QUIT</button>
+  </nav>
+
+  <div class="menu-meta">
+    <div>Version: <strong>1.0.0</strong></div>
+    <div class="muted">Profile: <span id="player-name">Admin</span></div>
+  </div>
+
+  <div class="credits">Designed for classroom PR submission </div>
+</main>
+
+<!-- ABOUT MODAL -->
+<!-- ABOUT MODAL -->
+<div class="overlay" id="overlay-about" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal" role="document" aria-labelledby="about-title">
+    <h2 id="about-title">About Us</h2>
+    <p>
+      This Call Simulator project is designed to train future BPO agents through
+      realistic voice-based scenarios, customer issues, and guided agent responses.
+      It functions as a safe learning environment where beginners can practice call
+      handling, troubleshooting, active listening, soft skills, and confidence building
+      before entering real-world customer service operations.
+    </p>
+
+    <p>
+      Our goal is to make practice accessible to everyone—from students preparing
+      for NCII assessments to aspiring call center agents aiming to improve their
+      communication skills. The simulator includes dynamic scripts, randomized customer
+      problems, and professional call flow patterns modeled after real BPO standards.
+    </p>
+
+    <div class="modal-row" style="margin-top:16px">
+      <div style="flex:1">
+        <strong>Development Team</strong>
+        <div style="color:var(--muted);font-size:13px;margin-top:6px">
+          Academic Project • Developer: Frankie Dee<br>
+          System Concept: PR Classroom Simulation<br>
+          Training Focus: CSR / TSR Fundamentals
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="about-close">Close</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SETTINGS MODAL -->
+<div class="overlay" id="overlay-settings" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal" role="document" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <p style="color:var(--muted)">Adjust your preferences. These settings are stored locally in your browser.</p>
+
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700">Sound</div>
+          <div style="color:var(--muted);font-size:13px">Toggle game sounds and click SFX</div>
+        </div>
+        <div class="switch" title="Sound toggle">
+          <input type="checkbox" id="setting-sound" aria-label="Toggle sound">
+          <div class="track"><div class="thumb"></div></div>
+        </div>
+      </label>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700">Fullscreen</div>
+          <div style="color:var(--muted);font-size:13px">Open the game in fullscreen when starting</div>
+        </div>
+        <div class="switch" title="Fullscreen toggle">
+          <input type="checkbox" id="setting-fullscreen" aria-label="Toggle fullscreen on start">
+          <div class="track"><div class="thumb"></div></div>
+        </div>
+      </label>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label for="ui-scale" style="display:block;font-weight:700">UI Scale <span style="color:var(--muted);font-weight:400">(<span id="scale-label">100%</span>)</span></label>
+      <input id="ui-scale" type="range" min="80" max="200" step="5" value="100" aria-label="UI scale slider" style="width:100%;margin-top:8px">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="settings-cancel">Cancel</button>
+      <button class="btn primary" id="settings-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUIT CONFIRM -->
+<div class="overlay" id="overlay-quit" role="dialog" aria-modal="true" aria-hidden="true">
+  <div class="modal" role="document" aria-labelledby="quit-title" style="max-width:460px">
+    <h2 id="quit-title">Confirm Quit</h2>
+    <p style="color:var(--muted)">Are you sure you want to quit the game? Your current session progress may be lost:( </p>
+
+    <div class="confirm-choices">
+      <button class="btn ghost" id="quit-no">No</button>
+      <button class="btn primary" id="quit-yes">Yes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  Main Menu JS
+  - Keyboard navigation (ArrowUp / ArrowDown / Enter)
+  - Modal open/close handlers
+  - Settings saved to localStorage under "menuSettings"
+  - Replace startGame() internals to navigate to actual game
+*/
+
+(function(){
+  // ----- Utilities -----
+  const qs = (sel, ctx=document) => ctx.querySelector(sel);
+  const qsa = (sel, ctx=document) => Array.from(ctx.querySelectorAll(sel));
+
+  // Elements
+  const menuButtons = qsa('.menu-button');
+  let selectedIndex = 0;
+
+  // Overlays / modals
+  const overlayAbout = qs('#overlay-about');
+  const overlaySettings = qs('#overlay-settings');
+  const overlayQuit = qs('#overlay-quit');
+
+  // Controls inside settings
+  const inputSound = qs('#setting-sound');
+  const inputFullscreen = qs('#setting-fullscreen');
+  const inputScale = qs('#ui-scale');
+  const scaleLabel = qs('#scale-label');
+
+  // Save key for localStorage
+  const STORAGE_KEY = 'menuSettings_v1';
+
+  // Default settings
+  const defaultSettings = {
+    sound: true,
+    fullscreenOnStart: false,
+    uiScale: 100,
+    playerName: 'Guest'
+  };
+
+  // ----- Init -----
+function init(){
+  // Load settings
+  const saved = loadSettings();
+  applySettingsToUI(saved);
+
+  // Set initial selection
+  updateSelection(0);
+
+  // Attach click handlers for all menu buttons
+  menuButtons.forEach((btn, index) => {
+    btn.addEventListener('click', () => {
+      updateSelection(index); // highlight clicked button
+      switch(btn.id){
+        case 'btn-start': startGame(); break;
+        case 'btn-about': openAbout(); break;
+        case 'btn-settings': openSettings(); break;
+        case 'btn-quit': openQuit(); break;
+      }
+    });
+  });
+
+  // Modal close buttons
+  qs('#about-close').addEventListener('click', closeAbout);
+  qs('#settings-cancel').addEventListener('click', closeSettings);
+  qs('#settings-save').addEventListener('click', saveSettings);
+  qs('#quit-no').addEventListener('click', closeQuit);
+  qs('#quit-yes').addEventListener('click', confirmQuit);
+
+  // Keyboard nav
+  window.addEventListener('keydown', onKeyDown);
+
+  // Click outside modal to close (for overlays)
+  [overlayAbout, overlaySettings, overlayQuit].forEach(ov => {
+    ov.addEventListener('click', (e) => {
+      if(e.target === ov){
+        closeAllModals();
+      }
+    });
+  });
+
+  // Settings UI interactions
+  inputScale.addEventListener('input', () => {
+    scaleLabel.textContent = inputScale.value + '%';
+    document.documentElement.style.setProperty('--container-width', `${(parseInt(inputScale.value)/100) * 420}px`);
+  });
+
+  // Update player name display if saved
+  qs('#player-name').textContent = saved.playerName || defaultSettings.playerName;
+}
+
+
+  // ----- Settings persistence -----
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return {...defaultSettings};
+      const parsed = JSON.parse(raw);
+      return {...defaultSettings, ...parsed};
+    }catch(e){
+      console.warn('Failed to load settings, using defaults', e);
+      return {...defaultSettings};
+    }
+  }
+
+  function saveSettingsToStorage(obj){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+    }catch(e){
+      console.warn('Failed to save settings', e);
+    }
+  }
+
+  function applySettingsToUI(settings){
+    inputSound.checked = !!settings.sound;
+    inputFullscreen.checked = !!settings.fullscreenOnStart;
+    inputScale.value = settings.uiScale || 100;
+    scaleLabel.textContent = inputScale.value + '%';
+    // apply scale immediately
+    document.documentElement.style.setProperty('--container-width', `${(parseInt(inputScale.value)/100) * 420}px`);
+  }
+
+  // Called when clicking Save in settings modal
+  function saveSettings(){
+    const settings = {
+      sound: !!inputSound.checked,
+      fullscreenOnStart: !!inputFullscreen.checked,
+      uiScale: parseInt(inputScale.value) || 100,
+      playerName: qs('#player-name').textContent || defaultSettings.playerName
+    };
+    saveSettingsToStorage(settings);
+    closeSettings();
+    // small feedback
+    toast('Settings saved');
+  }
+
+  // ----- Selection / keyboard navigation -----
+  function updateSelection(newIndex){
+    if(newIndex < 0) newIndex = 0;
+    if(newIndex >= menuButtons.length) newIndex = menuButtons.length - 1;
+    // remove previous
+    menuButtons.forEach(btn => btn.dataset.selected = 'false');
+    const btn = menuButtons[newIndex];
+    btn.dataset.selected = 'true';
+    btn.focus({preventScroll:true});
+    selectedIndex = newIndex;
+  }
+
+  function onKeyDown(e){
+    // If a modal is open, allow Escape to close
+    if(isAnyModalOpen()){
+      if(e.key === 'Escape') closeAllModals();
+      return; // do not navigate menu when modal open
+    }
+
+    switch(e.key){
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        e.preventDefault();
+        updateSelection(selectedIndex - 1);
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        e.preventDefault();
+        updateSelection(selectedIndex + 1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        // trigger click on selected button
+        menuButtons[selectedIndex].click();
+        break;
+      case '1': // quick shortcuts
+        qs('#btn-start').click();
+        break;
+      case '2':
+        qs('#btn-about').click();
+        break;
+      case '3':
+        qs('#btn-settings').click();
+        break;
+      case '4':
+        qs('#btn-quit').click();
+        break;
+    }
+  }
+
+  // ----- Modal helpers -----
+  function isAnyModalOpen(){
+    return overlayAbout.classList.contains('active') || overlaySettings.classList.contains('active') || overlayQuit.classList.contains('active');
+  }
+
+  function openAbout(){
+    overlayAbout.classList.add('active');
+    overlayAbout.setAttribute('aria-hidden','false');
+    // move focus inside modal for accessibility
+    qs('#about-close').focus();
+  }
+  function closeAbout(){
+    overlayAbout.classList.remove('active');
+    overlayAbout.setAttribute('aria-hidden','true');
+    restoreMenuFocus();
+  }
+
+  function openSettings(){
+    // populate UI with current settings
+    const s = loadSettings();
+    applySettingsToUI(s);
+    overlaySettings.classList.add('active');
+    overlaySettings.setAttribute('aria-hidden','false');
+    qs('#setting-sound').focus();
+  }
+  function closeSettings(){
+    overlaySettings.classList.remove('active');
+    overlaySettings.setAttribute('aria-hidden','true');
+    restoreMenuFocus();
+  }
+
+  function openQuit(){
+    overlayQuit.classList.add('active');
+    overlayQuit.setAttribute('aria-hidden','false');
+    qs('#quit-no').focus();
+  }
+  function closeQuit(){
+    overlayQuit.classList.remove('active');
+    overlayQuit.setAttribute('aria-hidden','true');
+    restoreMenuFocus();
+  }
+
+  function closeAllModals(){
+    [overlayAbout, overlaySettings, overlayQuit].forEach(ov=>{
+      ov.classList.remove('active');
+      ov.setAttribute('aria-hidden','true');
+    });
+    restoreMenuFocus();
+  }
+
+  function restoreMenuFocus(){
+    // restore focus to currently selected menu button
+    const current = menuButtons[selectedIndex] || menuButtons[0];
+    current.focus();
+  }
+
+  // ----- Actions -----
+  function startGame(){
+    // Hook: run any pre-start logic here (apply fullscreen if enabled, play SFX, load assets)
+    const settings = loadSettings();
+    if(settings.fullscreenOnStart && document.documentElement.requestFullscreen){
+      document.documentElement.requestFullscreen().catch(()=>{/* ignore */});
+    }
+
+    // play click SFX if sound enabled -- placeholder
+    if(settings.sound){
+      // Example: play a short audio element (you can replace with real audio)
+      // const sfx = new Audio('sfx/click.mp3'); sfx.play();
+      console.log('SFX: play click (placeholder)');
+    }
+
+    // Navigate to the call screen (your game scene)
+    try{
+      // short delay for SFX/visual feedback
+      setTimeout(() => {
+        window.location.href = 'loading.html';
+      }, 200);
+    }catch(e){
+      console.error('Navigation to loading.html failed', e);
+    }
+  }
+
+  function confirmQuit(){
+    // Implement quit logic: depending on hosting environment you might call window.close(),
+    // navigate away, or send user back to a main website. window.close() will only work if
+    // the page was opened by window.open() previously.
+    closeAllModals();
+    // Feedback for demo:
+    toast('Quit confirmed — closing demo (window.close may be blocked by browser)');
+    setTimeout(()=>{
+      try {
+        window.close();
+        // fallback: navigate to homepage or show a message
+        location.href = 'about:blank';
+      } catch(e){
+        console.warn(e);
+      }
+    }, 350);
+  }
+
+  // small toast helper (non-blocking)
+  function toast(message, timeout=1800){
+    const existing = qs('.__menu_toast');
+    if(existing) existing.remove();
+    const div = document.createElement('div');
+    div.className = '__menu_toast';
+    div.textContent = message;
+    Object.assign(div.style, {
+      position:'fixed', left:'50%', transform:'translateX(-50%)',
+      bottom:'32px', padding:'10px 14px', background:'rgba(2,6,20,0.8)',
+      color:'white', borderRadius:'8px', zIndex:60, fontWeight:600
+    });
+    document.body.appendChild(div);
+    setTimeout(()=>div.remove(), timeout);
+  }
+
+  // Expose for debugging (optional)
+  window.__gameMenu = {
+    loadSettings, saveSettingsToStorage, startGame
+  };
+
+  // Initialize on DOM ready
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+})();
+</script>
+
+<!-- -------------------------
+     Integration / Developer Notes
+     -------------------------
+     - To integrate with your actual game:
+       * Replace the body of startGame() with navigation to your game page (e.g. location.href = 'game.html')
+         or invoke your engine initialization logic.
+       * Replace placeholder SFX code with real audio asset playback.
+       * Hook the UI-scale value to your in-game UI scale if necessary.
+       * Add additional settings: language, control mapping, difficulty, account login, etc.
+
+     - Accessibility:
+       * Menu supports arrow keys and Enter.
+       * Modals trap focus by focusing the first control when opened and returning focus when closed.
+         For full focus-trap behavior, consider adding a small focus-trap utility/library (optional).
+       * ARIA attributes set on overlays.
+
+     - Persistence:
+       * Settings stored under localStorage key: "menuSettings_v1" (change key to migrate later)
+       * You may want to sync to remote profile or server if authentication exists.
+
+     - Assets:
+       * Currently no external assets to avoid network dependencies in PR.
+       * If you add images or audio, put them into an `assets/` folder and reference them with relative URLs.
+
+     - Browser behaviors:
+       * window.close() may be blocked by browsers when not opened by script; the demo uses a fallback to navigate away.
+       * Fullscreen API requested when "Fullscreen" is enabled and user starts the game.
+
+     - Testing:
+       * Try keyboard navigation (↑/↓/Enter), open Settings and change UI Scale, save, refresh — settings should persist.
+
+     - Possible future improvements:
+       * Focus trapping inside modal
+       * Animated background with WebGL / particle system
+       * Sound preview toggle
+       * Profile / Login integration
+       * Localization support (i18n strings)
+-->
+
+</body>
+</html>

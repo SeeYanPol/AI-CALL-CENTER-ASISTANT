@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CallSim - Intro</title>
+</head>
+
+<style>
+:root{
+  --bg1:#03040a;
+  --bg2:#000000;
+  --accent:#f2f2f2;
+  --blue:#40a9ff;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  font-family:"Inter",system-ui,Arial;
+  overflow:hidden;
+  background:#000;
+}
+
+.intro-body{
+  position:relative;
+  width:100%;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  color:var(--accent);
+
+  background: radial-gradient(circle at 20% 20%, rgba(64,169,255,0.12) 0%, transparent 35%),
+              linear-gradient(145deg, var(--bg1) 0%, var(--bg2) 100%);
+  animation: slightMove 13s ease-in-out infinite alternate;
+}
+
+/* ❗ REMOVED film-grain layer (fix for upper-left bug) */
+.intro-body::before{
+  content:none !important;
+}
+
+/* slow movement */
+@keyframes slightMove {
+  0% { background-position:0px 0px; }
+  100% { background-position:0px 0px; }
+}
+
+/* glow */
+.logo-glow{
+  position:absolute;
+  width:100vh;
+  height:100vh;
+  border-radius:50%;
+  filter:blur(90px) saturate(160%);
+  opacity:0;
+
+  background: radial-gradient(circle,
+              rgba(64,169,255,0.32) 0%,
+              rgba(126, 124, 124, 0.216) 30%,
+              transparent 60%);
+
+  animation:glowIn 1500ms 500ms ease-out forwards;
+}
+
+@keyframes glowIn {
+  from{opacity:0; transform:scale(0.7);}
+  to{opacity:1; transform:scale(1);}
+}
+
+/* particles */
+.particles{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:3;
+}
+.particle{
+  position:absolute;
+  width:4px;
+  height:4px;
+  background:rgb(255, 255, 255);
+  border-radius:50%;
+  filter:blur(1.5px);
+  animation: drift 10s linear infinite;
+  opacity:0.6;
+}
+@keyframes drift {
+  0%{ transform:translateY(120vh) translateX(0); }
+  100%{ transform:translateY(-20vh) translateX(30px); }
+}
+
+/* main title */
+.intro-wrap{
+  text-align:center;
+  z-index:40;
+  opacity:0;
+  animation:introFade 1600ms ease-out forwards;
+}
+@keyframes introFade {
+  from{opacity:0; transform:translateY(20px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+.intro-title{
+  font-size: clamp(36px, 6vw, 78px);
+  letter-spacing:10px;
+  text-transform:uppercase;
+  margin:0;
+  color:white;
+  font-weight:800;
+  opacity:0;
+  transform:translateY(12px) scale(0.95);
+  animation:titlePop 1400ms 600ms cubic-bezier(.2,.9,.2,1) forwards;
+  text-shadow:0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes titlePop {
+  0%{opacity:0; transform:translateY(12px) scale(0.95);}
+  60%{opacity:1; transform:translateY(-6px) scale(1.03);}
+  100%{opacity:1; transform:translateY(0) scale(1);}
+}
+
+.brand{
+  color:var(--blue);
+  text-shadow:0 0 35px rgba(64,169,255,0.7);
+}
+
+/* subtitle */
+.intro-sub{
+  margin-top:12px;
+  font-size:clamp(14px,1.5vw,18px);
+  opacity:0;
+  animation:subFade 1000ms 1200ms ease-out forwards;
+}
+@keyframes subFade{
+  from{opacity:0; transform:translateY(8px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+/* tap-to-continue */
+.press-any{
+  position:fixed;
+  bottom:5vh;
+  left:50%;
+  transform:translateX(-50%);
+  padding:10px 24px;
+  border-radius:30px;
+  background:rgba(36, 36, 36, 0.5);
+  backdrop-filter:blur(4px);
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+  opacity:0;
+  animation:showTap 1200ms 2000ms forwards, pulse 1500ms ease-in-out infinite;
+}
+
+@keyframes showTap { to{opacity:1;} }
+
+@keyframes pulse {
+  0%{ transform:translateX(-50%) scale(1); opacity:0.85; }
+  50%{ transform:translateX(-50%) scale(1.06); opacity:1; }
+  100%{ transform:translateX(-50%) scale(1); opacity:0.85; }
+}
+
+</style>
+
+<body class="intro-body">
+
+  <!-- glowing orb -->
+  <div class="logo-glow"></div>
+
+  <!-- particles -->
+  <div class="particles" id="particleContainer"></div>
+
+  <!-- title -->
+  <div class="intro-wrap">
+    <h1 class="intro-title">Made with <span class="brand">CallSim Studio</span></h1>
+    <p class="intro-sub">© CallSim • 2025</p>
+  </div>
+
+  <!-- continue -->
+  <div class="press-any" id="pressAny">Tap to continue</div>
+
+
+<script>
+/* redirect */
+document.getElementById("pressAny").addEventListener("click", () => {
+  document.body.style.transition="opacity 1s ease";
+  document.body.style.opacity="0";
+  setTimeout(()=> window.location.href="main-menu.html", 1000);
+});
+
+/* floating particles */
+const container = document.getElementById("particleContainer");
+
+for(let i=0;i<40;i++){
+  const p = document.createElement("div");
+  p.classList.add("particle");
+  p.style.left = Math.random()*100 + "vw";
+  p.style.animationDelay = (Math.random()*8) + "s";
+  p.style.opacity = (0.2 + Math.random()*0.7);
+  container.appendChild(p);
+}
+</script>
+
+</body>
+</html>
