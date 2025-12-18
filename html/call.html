@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CallSim - Active Call</title>
   <link rel="stylesheet" href="../css/call.css">
+  <script src="../js/api-client.js"></script>
 </head>
 <body>
 
@@ -12,13 +13,29 @@
   <div class="left-panel">
     <div class="call-header">
       <h2>📞 On Call...</h2>
-      <p id="callerName">Maria Dizon</p>
+      <p id="callerName">AI Agent: Alex</p>
+      <p class="api-status" id="apiStatus">🔴 Connecting...</p>
     </div>
 
     <div class="call-screen">
       <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" class="caller-avatar" alt="Caller">
       <h3 id="timer">00:00</h3>
-      <p class="status">Connected</p>
+      <p class="status" id="callStatus">Connecting...</p>
+    </div>
+
+    <!-- Conversation Area -->
+    <div class="conversation-area">
+      <div class="conversation-log" id="conversationLog">
+        <!-- Messages will appear here -->
+      </div>
+      <div class="conversation-input">
+        <input type="text" id="userMessage" placeholder="Type your message or click mic to speak..." autocomplete="off">
+        <button id="micBtn" class="mic-btn" title="Hold to speak">🎤</button>
+        <button id="sendBtn" class="send-btn">Send</button>
+      </div>
+      <div class="speech-indicator" id="speechIndicator" style="display:none;">
+        <span class="pulse"></span> Listening...
+      </div>
     </div>
 
     <div class="call-controls">
@@ -53,29 +70,322 @@
   </div>
 </div>
 
+<!-- API Configuration Modal -->
+<div id="configModal" class="overlay" style="display:none;">
+  <div class="popup config-popup">
+    <h2>⚙️ API Configuration</h2>
+    <div class="config-form">
+      <label>API Server URL:</label>
+      <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api">
+      <label>API Key (optional):</label>
+      <input type="password" id="apiKey" placeholder="Enter your API key">
+      <div class="config-buttons">
+        <button id="saveConfig">Connect</button>
+        <button id="skipConfig" class="secondary">Use Browser TTS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+// ==========================================
+// CallSim AI Call Center - Main Script
+// ==========================================
+
+// Configuration
+const CONFIG = {
+  apiUrl: localStorage.getItem('callsim_api_url') || 'http://localhost:5000/api',
+  apiKey: localStorage.getItem('callsim_api_key') || '',
+  useBrowserTTS: localStorage.getItem('callsim_use_browser_tts') === 'true'
+};
+
+// Initialize API client
+const api = new CallSimAPI(CONFIG.apiUrl, CONFIG.apiKey);
+const speechRecognition = new SpeechRecognitionHelper();
+
+// DOM Elements
 const popupOverlay = document.getElementById("popupOverlay");
 const popupText = document.getElementById("popupText");
 const nextBtn = document.getElementById("nextBtn");
 const submitTicket = document.getElementById("submitTicket");
 const timerEl = document.getElementById("timer");
+const conversationLog = document.getElementById("conversationLog");
+const userMessageInput = document.getElementById("userMessage");
+const sendBtn = document.getElementById("sendBtn");
+const micBtn = document.getElementById("micBtn");
+const speechIndicator = document.getElementById("speechIndicator");
+const apiStatus = document.getElementById("apiStatus");
+const callStatus = document.getElementById("callStatus");
+const configModal = document.getElementById("configModal");
+const endCallBtn = document.getElementById("endCallBtn");
 
 let callSeconds = 0;
 let callTimer;
+let isMuted = false;
+let speakerEnabled = true;
+let isProcessing = false;
 
+// ==========================================
+// Call Timer
+// ==========================================
 function startCallTimer() {
   callTimer = setInterval(() => {
     callSeconds++;
     const minutes = String(Math.floor(callSeconds/60)).padStart(2,'0');
     const seconds = String(callSeconds%60).padStart(2,'0');
     timerEl.textContent = `${minutes}:${seconds}`;
-  },1000);
+  }, 1000);
 }
 
-// Start timer immediately
-startCallTimer();
+function stopCallTimer() {
+  if (callTimer) {
+    clearInterval(callTimer);
+  }
+}
 
-// POPUP handling
+// ==========================================
+// Conversation Functions
+// ==========================================
+function addMessage(text, sender = 'agent') {
+  const msgDiv = document.createElement('div');
+  msgDiv.className = `message ${sender}-message`;
+  
+  const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+  
+  msgDiv.innerHTML = `
+    <span class="sender">${sender === 'agent' ? '🤖 Agent' : '👤 You'}</span>
+    <span class="text">${text}</span>
+    <span class="time">${timestamp}</span>
+  `;
+  
+  conversationLog.appendChild(msgDiv);
+  conversationLog.scrollTop = conversationLog.scrollHeight;
+}
+
+async function sendMessage(message) {
+  if (!message.trim() || isProcessing) return;
+  
+  isProcessing = true;
+  sendBtn.disabled = true;
+  
+  // Add user message
+  addMessage(message, 'user');
+  userMessageInput.value = '';
+  
+  try {
+    // Get AI response
+    const response = await api.sendMessage(message);
+    const aiResponse = response.response;
+    
+    // Add agent message
+    addMessage(aiResponse, 'agent');
+    
+    // Speak the response if speaker is enabled
+    if (speakerEnabled && !isMuted) {
+      await speakText(aiResponse);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    addMessage("I apologize, I'm having technical difficulties. Please hold.", 'agent');
+  }
+  
+  isProcessing = false;
+  sendBtn.disabled = false;
+}
+
+async function speakText(text) {
+  try {
+    if (CONFIG.useBrowserTTS) {
+      await api.speakBrowser(text);
+    } else {
+      await api.speak(text);
+    }
+  } catch (error) {
+    console.warn('TTS failed, using browser fallback:', error);
+    await api.speakBrowser(text);
+  }
+}
+
+// ==========================================
+// Speech Recognition
+// ==========================================
+function setupSpeechRecognition() {
+  if (!speechRecognition.isSupported()) {
+    micBtn.style.display = 'none';
+    return;
+  }
+  
+  speechRecognition.onResult = (transcript, isFinal) => {
+    userMessageInput.value = transcript;
+    if (isFinal) {
+      speechIndicator.style.display = 'none';
+    }
+  };
+  
+  speechRecognition.onError = (error) => {
+    console.error('Speech recognition error:', error);
+    speechIndicator.style.display = 'none';
+    micBtn.classList.remove('listening');
+  };
+  
+  speechRecognition.onEnd = () => {
+    speechIndicator.style.display = 'none';
+    micBtn.classList.remove('listening');
+    
+    // Auto-send if we have text
+    if (userMessageInput.value.trim()) {
+      sendMessage(userMessageInput.value);
+    }
+  };
+}
+
+// ==========================================
+// API Connection
+// ==========================================
+async function initializeCall() {
+  try {
+    // Check API health
+    const health = await api.healthCheck();
+    
+    if (health.status === 'healthy') {
+      apiStatus.textContent = '🟢 Connected';
+      apiStatus.className = 'api-status connected';
+      
+      // Start session
+      const session = await api.startSession({
+        caller: 'Customer',
+        timestamp: new Date().toISOString()
+      });
+      
+      callStatus.textContent = 'Connected';
+      
+      // Add greeting
+      if (session.greeting) {
+        addMessage(session.greeting, 'agent');
+        if (speakerEnabled) {
+          await speakText(session.greeting);
+        }
+      }
+      
+      startCallTimer();
+    } else {
+      throw new Error('API not healthy');
+    }
+  } catch (error) {
+    console.warn('API connection failed:', error);
+    apiStatus.textContent = '🟡 Browser Mode';
+    apiStatus.className = 'api-status browser-mode';
+    callStatus.textContent = 'Connected (Offline)';
+    CONFIG.useBrowserTTS = true;
+    
+    // Use fallback greeting
+    const greeting = "Hello! Thank you for calling. How may I assist you today?";
+    addMessage(greeting, 'agent');
+    startCallTimer();
+    
+    if (speakerEnabled) {
+      await api.speakBrowser(greeting);
+    }
+  }
+}
+
+function showConfigModal() {
+  document.getElementById('apiUrl').value = CONFIG.apiUrl;
+  document.getElementById('apiKey').value = CONFIG.apiKey;
+  configModal.style.display = 'flex';
+}
+
+// ==========================================
+// Event Listeners
+// ==========================================
+
+// Send message
+sendBtn.addEventListener('click', () => {
+  sendMessage(userMessageInput.value);
+});
+
+userMessageInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage(userMessageInput.value);
+  }
+});
+
+// Microphone button
+micBtn.addEventListener('click', () => {
+  if (speechRecognition.isListening) {
+    speechRecognition.stop();
+    micBtn.classList.remove('listening');
+    speechIndicator.style.display = 'none';
+  } else {
+    if (speechRecognition.start()) {
+      micBtn.classList.add('listening');
+      speechIndicator.style.display = 'flex';
+    }
+  }
+});
+
+// Mute button
+const muteBtn = document.getElementById("muteBtn");
+muteBtn.addEventListener("click", () => {
+  isMuted = !isMuted;
+  muteBtn.textContent = isMuted ? '🎤 Unmute' : '🔇 Mute';
+  muteBtn.classList.toggle('active', isMuted);
+});
+
+// Speaker button
+const speakerBtn = document.getElementById("speakerBtn");
+speakerBtn.addEventListener("click", () => {
+  speakerEnabled = !speakerEnabled;
+  speakerBtn.textContent = speakerEnabled ? '🔊 Speaker' : '🔈 Off';
+  speakerBtn.classList.toggle('active', !speakerEnabled);
+});
+
+// End call
+endCallBtn.addEventListener('click', async () => {
+  stopCallTimer();
+  
+  try {
+    const result = await api.endSession();
+    // Store transcript for results page
+    if (result.transcript) {
+      localStorage.setItem('callsim_transcript', JSON.stringify(result.transcript));
+    }
+  } catch (error) {
+    console.warn('Could not end session properly:', error);
+  }
+  
+  // Store call duration
+  localStorage.setItem('callsim_duration', timerEl.textContent);
+  
+  window.location.href = 'result.html';
+});
+
+// Config modal
+document.getElementById('saveConfig').addEventListener('click', async () => {
+  CONFIG.apiUrl = document.getElementById('apiUrl').value;
+  CONFIG.apiKey = document.getElementById('apiKey').value;
+  CONFIG.useBrowserTTS = false;
+  
+  localStorage.setItem('callsim_api_url', CONFIG.apiUrl);
+  localStorage.setItem('callsim_api_key', CONFIG.apiKey);
+  localStorage.setItem('callsim_use_browser_tts', 'false');
+  
+  api.baseUrl = CONFIG.apiUrl;
+  api.apiKey = CONFIG.apiKey;
+  
+  configModal.style.display = 'none';
+  await initializeCall();
+});
+
+document.getElementById('skipConfig').addEventListener('click', () => {
+  CONFIG.useBrowserTTS = true;
+  localStorage.setItem('callsim_use_browser_tts', 'true');
+  configModal.style.display = 'none';
+  initializeCall();
+});
+
+// Ticket submission
 submitTicket.addEventListener("click", () => {
   const first = document.getElementById("firstName").value.trim();
   const last = document.getElementById("lastName").value.trim();
@@ -87,6 +397,14 @@ submitTicket.addEventListener("click", () => {
     return;
   }
 
+  // Store for results page
+  localStorage.setItem('callsim_client', JSON.stringify({
+    firstName: first,
+    lastName: last,
+    email: email,
+    complaint: complaint
+  }));
+
   popupText.textContent =
     "Name: " + first + " " + last +
     "\nEmail: " + email +
@@ -97,18 +415,21 @@ submitTicket.addEventListener("click", () => {
 
 nextBtn.addEventListener("click", () => {
   popupOverlay.style.display = "none";
-  window.location.href = "result.html";
+  endCallBtn.click(); // End call and go to results
 });
 
-// Mute/Speaker buttons (dummy toggle for visual feedback)
-const muteBtn = document.getElementById("muteBtn");
-const speakerBtn = document.getElementById("speakerBtn");
-muteBtn.addEventListener("click", () => {
-  muteBtn.textContent = muteBtn.textContent.includes('🔇') ? '🎤 Unmute' : '🔇 Mute';
-});
-speakerBtn.addEventListener("click", () => {
-  speakerBtn.textContent = speakerBtn.textContent.includes('🔊') ? '🔈 Off' : '🔊 Speaker';
-});
+// ==========================================
+// Initialize
+// ==========================================
+setupSpeechRecognition();
+
+// Check if API is configured
+if (!CONFIG.apiKey && !CONFIG.useBrowserTTS) {
+  // Try to connect without key first
+  initializeCall();
+} else {
+  initializeCall();
+}
 </script>
 
 </body>

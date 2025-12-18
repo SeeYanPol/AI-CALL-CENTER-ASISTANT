@@ -1,0 +1,16 @@
+# Flask and extensions
+Flask==3.0.0
+flask-cors==4.0.0
+flask-limiter==3.5.0
+python-dotenv==1.0.0
+
+# AI and TTS
+openai==0.28.1
+gTTS==2.4.0
+
+# Production server
+gunicorn==21.2.0
+waitress==2.1.2
+
+# Security
+PyJWT==2.8.0
