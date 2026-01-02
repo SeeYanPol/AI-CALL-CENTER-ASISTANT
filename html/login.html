@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CallSim - Login</title>
+  <link rel="stylesheet" href="../css/intro.css">
+  <style>
+    body.intro-body {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0f0a 50%, #0f0a0a 100%);
+      position: relative;
+    }
+
+    body.intro-body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(245, 114, 36, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(66, 153, 225, 0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .login-container {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 460px;
+      background: rgba(20, 20, 20, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+        0 8px 32px rgba(245, 114, 36, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 100;
+      animation: slideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translate(-50%, -48%) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .login-title {
+      font-size: 42px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+      position: relative;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 40px;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group {
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      font-weight: 600;
+      transition: color 0.3s;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group.focused label {
+      color: var(--accent);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 16px 20px;
+      padding-right: 50px;
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 15px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 400;
+      box-sizing: border-box;
+    }
+
+    .form-group input::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    .form-group input:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 
+        0 0 0 4px rgba(245, 114, 36, 0.1),
+        0 4px 12px rgba(245, 114, 36, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .form-group input.error {
+      border-color: #ff5252;
+      animation: shake 0.4s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .input-icon {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 18px;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+
+    .form-group.focused .input-icon {
+      color: var(--accent);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 6px;
+      transition: all 0.3s;
+      z-index: 1;
+      border-radius: 6px;
+    }
+
+    .toggle-password:hover {
+      color: var(--accent);
+      background: rgba(245, 114, 36, 0.1);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 32px;
+      user-select: none;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      border-radius: 4px;
+    }
+
+    .checkbox-group label {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 14px;
+      cursor: pointer;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 18px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #f57224 0%, #d85f1f 50%, #c04d15 100%);
+      color: white;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.5px;
+      box-shadow: 
+        0 4px 15px rgba(245, 114, 36, 0.3),
+        0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.6s;
+    }
+
+    .btn-login:hover::before {
+      left: 100%;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-3px);
+      box-shadow: 
+        0 8px 30px rgba(245, 114, 36, 0.5),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(-1px);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-login:disabled:hover {
+      transform: none;
+      box-shadow: 
+        0 4px 15px rgba(245, 114, 36, 0.3),
+        0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .error-message {
+      background: linear-gradient(135deg, rgba(255, 59, 48, 0.15), rgba(255, 59, 48, 0.08));
+      border: 1px solid rgba(255, 59, 48, 0.4);
+      color: #ff6b6b;
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      display: none;
+      animation: slideDown 0.3s ease-out;
+      font-weight: 500;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .success-message {
+      background: linear-gradient(135deg, rgba(52, 199, 89, 0.15), rgba(52, 199, 89, 0.08));
+      border: 1px solid rgba(52, 199, 89, 0.4);
+      color: #5dd680;
+      padding: 14px 18px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      display: none;
+      animation: slideDown 0.3s ease-out;
+      font-weight: 500;
+    }
+
+    .help-text {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 13px;
+    }
+
+    .help-text strong {
+      color: white;
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      letter-spacing: 0.3px;
+      font-weight: 700;
+    }
+
+    .quick-login-btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 10px 24px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(245, 114, 36, 0.15), rgba(245, 114, 36, 0.08));
+      border: 1.5px solid rgba(245, 114, 36, 0.3);
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      letter-spacing: 0.3px;
+    }
+
+    .quick-login-btn:hover {
+      background: linear-gradient(135deg, rgba(245, 114, 36, 0.25), rgba(245, 114, 36, 0.15));
+      border-color: rgba(245, 114, 36, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 114, 36, 0.2);
+    }
+
+    .quick-login-btn:active {
+      transform: translateY(0);
+    }
+
+    .input-validation {
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
+      color: #ff6b6b;
+      font-weight: 500;
+    }
+
+    /* Enhanced particle effects */
+    .particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: radial-gradient(circle, rgba(245, 114, 36, 0.8), rgba(245, 114, 36, 0.2));
+      border-radius: 50%;
+      animation: float 15s infinite;
+      filter: blur(0.5px);
+      box-shadow: 0 0 10px rgba(245, 114, 36, 0.5);
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-100vh) translateX(50px);
+      }
+    }
+
+    .logo-glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(245, 114, 36, 0.12), transparent 70%);
+      pointer-events: none;
+      animation: pulse 4s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+      }
+    }
+
+    /* Modern floating orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.4;
+      pointer-events: none;
+      animation: float-orb 20s infinite ease-in-out;
+    }
+
+    .orb-1 {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(135deg, rgba(245, 114, 36, 0.3), rgba(220, 38, 38, 0.2));
+      top: -10%;
+      left: -10%;
+    }
+
+    .orb-2 {
+      width: 350px;
+      height: 350px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.2));
+      bottom: -10%;
+      right: -10%;
+      animation-delay: -10s;
+    }
+
+    @keyframes float-orb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -30px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+    }
+  </style>
+</head>
+<body class="intro-body">
+  <!-- Background effects -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="logo-glow"></div>
+  <div class="particles" id="particleContainer"></div>
+
+  <!-- Login Form -->
+  <div class="login-container">
+    <h1 class="login-title">CallSim</h1>
+    <p class="login-subtitle">Customer Support Training Simulator</p>
+
+    <div id="errorMessage" class="error-message"></div>
+    <div id="successMessage" class="success-message"></div>
+
+    <form id="loginForm">
+      <div class="form-group" id="emailGroup">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper">
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            required 
+            autocomplete="email" 
+            placeholder="admin@callsim.com"
+            aria-describedby="emailError"
+          >
+          <span class="input-icon">@</span>
+        </div>
+        <div class="input-validation" id="emailError"></div>
+      </div>
+
+      <div class="form-group" id="passwordGroup">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            required 
+            autocomplete="current-password" 
+            placeholder="Enter your password"
+            aria-describedby="passwordError"
+          >
+          <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
+            👁️
+          </button>
+        </div>
+        <div class="input-validation" id="passwordError"></div>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="rememberMe" name="rememberMe">
+        <label for="rememberMe">Remember me</label>
+      </div>
+
+      <button type="submit" class="btn-login" id="loginBtn">
+        Login
+      </button>
+    </form>
+
+    <div class="help-text">
+      <strong>Default Admin Account</strong><br>
+      Email: admin@callsim.com<br>
+      Password: Admin123!<br>
+      <button class="quick-login-btn" id="quickLoginBtn">Quick Login</button>
+    </div>
+  </div>
+
+  <script>
+    // Floating particles
+    const container = document.getElementById("particleContainer");
+    for(let i=0;i<40;i++){
+      const p = document.createElement("div");
+      p.classList.add("particle");
+      p.style.left = Math.random()*100 + "vw";
+      p.style.animationDelay = (Math.random()*8) + "s";
+      p.style.opacity = (0.2 + Math.random()*0.7);
+      container.appendChild(p);
+    }
+
+    // DOM Elements
+    const loginForm = document.getElementById('loginForm');
+    const errorMessage = document.getElementById('errorMessage');
+    const successMessage = document.getElementById('successMessage');
+    const loginBtn = document.getElementById('loginBtn');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const emailGroup = document.getElementById('emailGroup');
+    const passwordGroup = document.getElementById('passwordGroup');
+    const togglePasswordBtn = document.getElementById('togglePassword');
+    const quickLoginBtn = document.getElementById('quickLoginBtn');
+    const rememberMeCheckbox = document.getElementById('rememberMe');
+
+    // Focus states
+    [emailInput, passwordInput].forEach(input => {
+      input.addEventListener('focus', () => {
+        input.closest('.form-group').classList.add('focused');
+      });
+      input.addEventListener('blur', () => {
+        input.closest('.form-group').classList.remove('focused');
+      });
+    });
+
+    // Password visibility toggle
+    togglePasswordBtn.addEventListener('click', () => {
+      const type = passwordInput.type === 'password' ? 'text' : 'password';
+      passwordInput.type = type;
+      togglePasswordBtn.textContent = type === 'password' ? '👁️' : '🔒';
+    });
+
+    // Quick login
+    quickLoginBtn.addEventListener('click', () => {
+      emailInput.value = 'admin@callsim.com';
+      passwordInput.value = 'Admin123!';
+      emailInput.focus();
+      emailInput.blur();
+      setTimeout(() => loginForm.requestSubmit(), 100);
+    });
+
+    // Load saved email if remember me was checked
+    if (localStorage.getItem('rememberEmail')) {
+      emailInput.value = localStorage.getItem('rememberEmail');
+      rememberMeCheckbox.checked = true;
+    }
+
+    // Input validation
+    function validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+
+    function showError(message, field = null) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      successMessage.style.display = 'none';
+      
+      if (field) {
+        field.classList.add('error');
+        setTimeout(() => field.classList.remove('error'), 400);
+      }
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      errorMessage.style.display = 'none';
+    }
+
+    function hideMessages() {
+      errorMessage.style.display = 'none';
+      successMessage.style.display = 'none';
+    }
+
+    // Real-time email validation
+    emailInput.addEventListener('blur', () => {
+      const email = emailInput.value.trim();
+      const emailError = document.getElementById('emailError');
+      
+      if (email && !validateEmail(email)) {
+        emailError.textContent = 'Please enter a valid email address';
+        emailError.style.display = 'block';
+        emailInput.classList.add('error');
+      } else {
+        emailError.style.display = 'none';
+        emailInput.classList.remove('error');
+      }
+    });
+
+    // Password validation
+    passwordInput.addEventListener('input', () => {
+      const password = passwordInput.value;
+      const passwordError = document.getElementById('passwordError');
+      
+      if (password && password.length < 6) {
+        passwordError.textContent = 'Password must be at least 6 characters';
+        passwordError.style.display = 'block';
+      } else {
+        passwordError.style.display = 'none';
+      }
+    });
+
+    // Login handler
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      // Validate inputs
+      if (!validateEmail(email)) {
+        showError('Please enter a valid email address', emailInput);
+        emailInput.focus();
+        return;
+      }
+
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters', passwordInput);
+        passwordInput.focus();
+        return;
+      }
+
+      // Hide messages and disable button
+      hideMessages();
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span> Logging in...';
+
+      try {
+        const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Store tokens
+          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('refresh_token', data.refresh_token);
+          localStorage.setItem('user_email', email);
+          
+          // Remember email if checkbox is checked
+          if (rememberMeCheckbox.checked) {
+            localStorage.setItem('rememberEmail', email);
+          } else {
+            localStorage.removeItem('rememberEmail');
+          }
+          
+          // Show success message
+          showSuccess('✓ Login successful! Redirecting...');
+          loginBtn.innerHTML = '<span class="spinner"></span> Success!';
+          
+          // Redirect after short delay
+          setTimeout(() => {
+            window.location.href = 'main-menu.html';
+          }, 800);
+        } else {
+          // Show error
+          const errorMsg = data.error || 'Login failed. Please check your credentials.';
+          showError(errorMsg);
+          loginBtn.disabled = false;
+          loginBtn.textContent = 'Login';
+          
+          // Shake the input field that's likely wrong
+          if (errorMsg.toLowerCase().includes('password')) {
+            passwordInput.classList.add('error');
+            passwordInput.select();
+          } else {
+            emailInput.classList.add('error');
+            emailInput.select();
+          }
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        showError('Cannot connect to server. Make sure the backend is running on http://localhost:5000');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Ctrl/Cmd + K for quick login
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        quickLoginBtn.click();
+      }
+    });
+
+    // Auto-fill on page load (for testing)
+    if (window.location.search.includes('autofill')) {
+      emailInput.value = 'admin@callsim.com';
+      passwordInput.value = 'Admin123!';
+    }
+
+    // Focus email field on load
+    setTimeout(() => emailInput.focus(), 300);
+  </script>
+</body>
+</html>

@@ -4,13 +4,21 @@ flask-cors==4.0.0
 flask-limiter==3.5.0
 python-dotenv==1.0.0
 
+# Database (SQLite for development - simple!)
+SQLAlchemy==2.0.23
+
+# Authentication & Security
+Flask-Bcrypt==1.0.1
+flask-jwt-extended==4.6.0
+bleach==6.1.0
+email-validator==2.1.0
+
+# Validation
+marshmallow==3.20.1
+
 # AI and TTS
-openai==0.28.1
+google-cloud-aiplatform==1.75.0
 gTTS==2.4.0
 
-# Production server
-gunicorn==21.2.0
-waitress==2.1.2
-
-# Security
-PyJWT==2.8.0
+# API Documentation
+flasgger==0.9.7.1

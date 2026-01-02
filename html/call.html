@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CallSim - Active Call</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📞</text></svg>">
   <link rel="stylesheet" href="../css/call.css">
   <script src="../js/api-client.js"></script>
 </head>
@@ -30,12 +31,13 @@
       </div>
       <div class="conversation-input">
         <input type="text" id="userMessage" placeholder="Type your message or click mic to speak..." autocomplete="off">
-        <button id="micBtn" class="mic-btn" title="Hold to speak">🎤</button>
+        <button id="micBtn" class="mic-btn" title="Click to speak">🎤</button>
         <button id="sendBtn" class="send-btn">Send</button>
       </div>
       <div class="speech-indicator" id="speechIndicator" style="display:none;">
         <span class="pulse"></span> Listening...
       </div>
+      <div class="mic-status" id="micStatus" style="display:none; padding: 8px; margin: 8px 0; background: #fff3cd; border-radius: 4px; font-size: 13px; text-align: center;"></div>
     </div>
 
     <div class="call-controls">
@@ -74,27 +76,27 @@
 <div id="configModal" class="overlay" style="display:none;">
   <div class="popup config-popup">
     <h2>⚙️ API Configuration</h2>
-    <div class="config-form">
+    <form class="config-form" onsubmit="return false;">
       <label>API Server URL:</label>
-      <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api">
+      <input type="text" id="apiUrl" value="http://localhost:5000/api" placeholder="http://localhost:5000/api" autocomplete="url">
       <label>API Key (optional):</label>
-      <input type="password" id="apiKey" placeholder="Enter your API key">
+      <input type="password" id="apiKey" placeholder="Enter your API key" autocomplete="off">
       <div class="config-buttons">
-        <button id="saveConfig">Connect</button>
-        <button id="skipConfig" class="secondary">Use Browser TTS</button>
+        <button type="button" id="saveConfig">Connect</button>
+        <button type="button" id="skipConfig" class="secondary">Use Browser TTS</button>
       </div>
-    </div>
+    </form>
   </div>
 </div>
 
 <script>
 // ==========================================
-// CallSim AI Call Center - Main Script
+// CallSim Customer Support Training - Main Script
 // ==========================================
 
 // Configuration
 const CONFIG = {
-  apiUrl: localStorage.getItem('callsim_api_url') || 'http://localhost:5000/api',
+  apiUrl: localStorage.getItem('callsim_api_url') || 'http://localhost:5000/api/v1',
   apiKey: localStorage.getItem('callsim_api_key') || '',
   useBrowserTTS: localStorage.getItem('callsim_use_browser_tts') === 'true'
 };
@@ -226,6 +228,29 @@ function setupSpeechRecognition() {
     console.error('Speech recognition error:', error);
     speechIndicator.style.display = 'none';
     micBtn.classList.remove('listening');
+    
+    const micStatus = document.getElementById('micStatus');
+    micStatus.style.display = 'block';
+    
+    switch(error) {
+      case 'not-allowed':
+        micStatus.innerHTML = '⚠️ Microphone access denied. <button onclick="requestMicPermission()" style="margin-left:8px; padding:4px 8px; cursor:pointer;">Grant Permission</button>';
+        micStatus.style.background = '#f8d7da';
+        break;
+      case 'no-speech':
+        micStatus.innerHTML = '🔇 No speech detected. Please speak clearly and try again.';
+        micStatus.style.background = '#fff3cd';
+        setTimeout(() => micStatus.style.display = 'none', 3000);
+        break;
+      case 'network':
+        micStatus.innerHTML = '🌐 Network error. Please check your connection.';
+        micStatus.style.background = '#f8d7da';
+        break;
+      default:
+        micStatus.innerHTML = `❌ Speech recognition error: ${error}. Try typing instead.`;
+        micStatus.style.background = '#fff3cd';
+        setTimeout(() => micStatus.style.display = 'none', 5000);
+    }
   };
   
   speechRecognition.onEnd = () => {
@@ -311,16 +336,67 @@ userMessageInput.addEventListener('keypress', (e) => {
   }
 });
 
+// Microphone permission request
+window.requestMicPermission = async function() {
+  try {
+    const micStatus = document.getElementById('micStatus');
+    micStatus.innerHTML = '🎤 Requesting microphone access...';
+    micStatus.style.background = '#d1ecf1';
+    
+    // Request microphone access
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    // Stop the stream immediately (we only needed permission)
+    stream.getTracks().forEach(track => track.stop());
+    
+    micStatus.innerHTML = '✅ Microphone access granted! Click the 🎤 button to speak.';
+    micStatus.style.background = '#d4edda';
+    setTimeout(() => micStatus.style.display = 'none', 3000);
+    
+    // Re-enable mic button
+    micBtn.disabled = false;
+    micBtn.style.opacity = '1';
+  } catch (error) {
+    console.error('Microphone permission denied:', error);
+    const micStatus = document.getElementById('micStatus');
+    micStatus.innerHTML = '❌ Could not access microphone. Please check browser settings or use HTTPS.';
+    micStatus.style.background = '#f8d7da';
+  }
+};
+
 // Microphone button
-micBtn.addEventListener('click', () => {
+micBtn.addEventListener('click', async () => {
   if (speechRecognition.isListening) {
     speechRecognition.stop();
     micBtn.classList.remove('listening');
     speechIndicator.style.display = 'none';
   } else {
+    // Check microphone permission first
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+      
+      if (permissionStatus.state === 'denied') {
+        const micStatus = document.getElementById('micStatus');
+        micStatus.style.display = 'block';
+        micStatus.innerHTML = '⚠️ Microphone blocked. Please enable it in your browser settings.';
+        micStatus.style.background = '#f8d7da';
+        return;
+      }
+    } catch (e) {
+      // Permission API not supported, try anyway
+      console.log('Permission API not supported');
+    }
+    
     if (speechRecognition.start()) {
       micBtn.classList.add('listening');
       speechIndicator.style.display = 'flex';
+      const micStatus = document.getElementById('micStatus');
+      micStatus.style.display = 'none';
+    } else {
+      const micStatus = document.getElementById('micStatus');
+      micStatus.style.display = 'block';
+      micStatus.innerHTML = '❌ Could not start microphone. Click here to <button onclick="requestMicPermission()" style="margin-left:8px; padding:4px 8px; cursor:pointer;">Grant Permission</button>';
+      micStatus.style.background = '#f8d7da';
     }
   }
 });
@@ -422,6 +498,61 @@ nextBtn.addEventListener("click", () => {
 // Initialize
 // ==========================================
 setupSpeechRecognition();
+
+// Check microphone permission on load
+(async function checkMicrophonePermission() {
+  try {
+    const micStatus = document.getElementById('micStatus');
+    
+    // Check if running on HTTPS or localhost
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure) {
+      micStatus.style.display = 'block';
+      micStatus.innerHTML = '⚠️ Microphone requires HTTPS. Voice input may not work.';
+      micStatus.style.background = '#fff3cd';
+      return;
+    }
+    
+    // Try to check permission status
+    const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
+    
+    if (permissionStatus.state === 'prompt') {
+      micStatus.style.display = 'block';
+      micStatus.innerHTML = '🎤 Click the microphone button to enable voice input.';
+      micStatus.style.background = '#d1ecf1';
+    } else if (permissionStatus.state === 'denied') {
+      micStatus.style.display = 'block';
+      micStatus.innerHTML = '⚠️ Microphone blocked. Click the 🔒 icon in your browser\'s address bar and enable microphone access.';
+      micStatus.style.background = '#f8d7da';
+      micBtn.disabled = true;
+      micBtn.style.opacity = '0.5';
+    } else if (permissionStatus.state === 'granted') {
+      // Permission already granted, hide message
+      setTimeout(() => {
+        if (micStatus.innerHTML.includes('granted')) {
+          micStatus.style.display = 'none';
+        }
+      }, 2000);
+    }
+    
+    // Listen for permission changes
+    permissionStatus.onchange = () => {
+      if (permissionStatus.state === 'granted') {
+        micStatus.style.display = 'block';
+        micStatus.innerHTML = '✅ Microphone enabled! You can now use voice input.';
+        micStatus.style.background = '#d4edda';
+        micBtn.disabled = false;
+        micBtn.style.opacity = '1';
+        setTimeout(() => micStatus.style.display = 'none', 3000);
+      }
+    };
+  } catch (error) {
+    console.log('Could not check microphone permission:', error);
+  }
+})();
 
 // Check if API is configured
 if (!CONFIG.apiKey && !CONFIG.useBrowserTTS) {

@@ -4,7 +4,7 @@
  */
 
 class CallSimAPI {
-    constructor(baseUrl = 'http://localhost:5000/api', apiKey = null) {
+    constructor(baseUrl = 'http://localhost:5000/api/v1', apiKey = null) {
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
         this.sessionId = null;
@@ -26,6 +26,12 @@ class CallSimAPI {
             'Content-Type': 'application/json'
         };
         
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         if (this.apiKey) {
             headers['X-API-Key'] = this.apiKey;
         }
@@ -42,7 +48,7 @@ class CallSimAPI {
      */
     async healthCheck() {
         try {
-            const response = await fetch(`${this.baseUrl}/health`);
+            const response = await fetch('http://localhost:5000/api/health');
             return await response.json();
         } catch (error) {
             console.error('Health check failed:', error);
@@ -277,6 +283,9 @@ class SpeechRecognitionHelper {
     start() {
         if (!this.recognition) {
             console.error('Speech recognition not supported');
+            if (this.onError) {
+                this.onError('not-supported');
+            }
             return false;
         }
 
@@ -286,6 +295,15 @@ class SpeechRecognitionHelper {
             return true;
         } catch (error) {
             console.error('Failed to start recognition:', error);
+            
+            // If already started, ignore the error
+            if (error.message && error.message.includes('already started')) {
+                return true;
+            }
+            
+            if (this.onError) {
+                this.onError(error.message || 'unknown');
+            }
             return false;
         }
     }

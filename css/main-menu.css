@@ -2,15 +2,17 @@
    Base / Reset
    ---------------------- */
 :root{
-  --bg1: #060616;
-  --bg2: #12122a;
-  --accent: #4da3ff;
+  --bg1: #0F1111;        /* Lazada Navy Blue */
+  --bg2: #1a1a1a;
+  --accent: #F57224;     /* Lazada Orange */
   --glass: rgba(255,255,255,0.04);
   --card: rgba(255,255,255,0.03);
   --muted: #bfc7d6;
-  --focus: 3px solid rgba(77,163,255,0.18);
+  --focus: 3px solid rgba(245,114,36,0.3);
   --radius: 14px;
   --container-width: 420px;
+  --lazada-orange: #F57224;
+  --lazada-navy: #0F1111;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -18,7 +20,7 @@ body{
   margin:0;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   color: #e6eef9;
-  background: radial-gradient(1200px 800px at 10% 10%, rgba(77,163,255,0.06), transparent),
+  background: radial-gradient(1200px 800px at 10% 10%, rgba(245,114,36,0.08), transparent),
               linear-gradient(180deg, var(--bg1), var(--bg2));
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
@@ -69,15 +71,15 @@ body{
   width:64px;
   height:64px;
   border-radius:12px;
-  background: linear-gradient(135deg, rgba(77,163,255,0.18), rgba(80,200,150,0.08));
+  background: linear-gradient(135deg, rgba(245,114,36,0.24), rgba(245,114,36,0.12));
   display:flex;
   align-items:center;
   justify-content:center;
   font-weight:700;
-  color:var(--accent);
+  color:var(--lazada-orange);
   font-size:22px;
   letter-spacing:0.8px;
-  box-shadow: 0 6px 18px rgba(77,163,255,0.06);
+  box-shadow: 0 6px 18px rgba(245,114,36,0.1);
 }
 .title {
   display:flex;
@@ -85,6 +87,7 @@ body{
 }
 .title h1{margin:0;font-size:20px;letter-spacing:1px}
 .subtitle{font-size:11px;color:var(--muted);margin-top:4px}
+.disclaimer{font-size:10px;color:var(--lazada-orange);margin-top:3px;font-weight:600}
 
 /* ----------------------
    Buttons list
@@ -92,8 +95,8 @@ body{
 .menu-button:hover {
 color: white;
 transform: translateY(-3px);
-box-shadow: 0 18px 30px rgba(77,163,255,0.12);
-background: linear-gradient(180deg, rgba(77,163,255,0.14), rgba(77,163,255,0.06));
+box-shadow: 0 18px 30px rgba(245,114,36,0.15);
+background: linear-gradient(180deg, rgba(245,114,36,0.18), rgba(245,114,36,0.08));
 }
 
 
